@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .wrap {
+            --deg:0deg;
+            --scale:1;
+            --degY:0deg;
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border: 1px solid black;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            transform-origin: 50% 50%;
+            transform: rotate(var(--deg)) scale(var(--scale));
+        }
+
+        .content{
+            z-index: 0;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(90deg, orange, green);
+            transition: transform 0.5s linear 0s;
+        }
+
+        .top,.bottom {
+            z-index: 99;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+
+        span {
+            z-index: 999;
+            width: 20px;
+            height: 20px;
+            background-color: blueviolet;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrap">
+        <div class="top">
+            <span class="remove">1</span>
+            <span class="rotate">2</span>
+        </div>
+        <div class="content"></div>
+        <div class="bottom">
+            <span class="reverse">4</span>
+            <span class="scale">3</span>
+        </div>
+    </div>
+</body>
+<script>
+    let wrapEl = document.querySelector('.wrap'),
+        contentEl = document.querySelector('.content')
+        removeEl = document.querySelector('.remove'),
+        rotateEl = document.querySelector('.rotate'),
+        scaleEl = document.querySelector('.scale'),
+        reverseEl = document.querySelector('.reverse')
+
+
+        
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+    // 拖拽
+    // 1. 鼠标按下的时候计算并记录鼠标相对于大div(wrapEl)的位置(x,y),
+    // 2.当鼠标移动的时候根据鼠标位置好前面算好的x和y计算出div需要移动的距离,
+    // 3.然后把计算出的距离赋值给wrapEl.style.left和wrapEl.style.top
+    // 4.鼠标松开时解除先关事件
+
+    wrapEl.addEventListener('mousedown',function(e){
+        e.preventDefault()
+        let x = e.clientX - wrapEl.offsetLeft,
+            y = e.clientY - wrapEl.offsetTop
+
+        function move(e){
+            wrapEl.style.left = `${e.clientX - x}px`
+            wrapEl.style.top = `${e.clientY - y}px`
+        }
+        
+        document.addEventListener('mousemove',move)
+        document.addEventListener('mouseup',function(){
+            document.removeEventListener('mousemove',move)
+        })
+    })
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+
+
+
+
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+    //移除
+    //点击removeEl时从body中移除wrapEl
+
+    removeEl.addEventListener('click', function () {
+        document.body.removeChild(wrapEl)
+    })
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+
+
+
+
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+    //根据鼠标旋转
+    // 1.设定阀值target1位true,当鼠标按下时计算并记录旋转中心(x,y),
+    // 2.用Math.atan2函数根据旋转中心以及当前鼠标位置计算并记录少旋转的角度deg1,
+    // 3.然后把阀值置为false保证之后按下时不重新计算deg1,
+    // 4.当鼠标移动是计算出需要旋转的角度,然后加上之前计算出来的deg1,最终计算出deg2,
+    // 5.最后改变css变量--rotate完成旋转
+    // 6.松开鼠标解除相关事件 
+    
+    let target1 = true
+    let deg1
+    rotateEl.addEventListener('mousedown', function (e) {
+        e.stopPropagation()
+        e.preventDefault()
+        let x = wrapEl.offsetLeft + wrapEl.offsetWidth / 2
+        let y = wrapEl.offsetTop + wrapEl.offsetHeight / 2
+        if(target1){
+            deg1 =  Math.atan2(e.clientY - y, e.clientX - x) * 360 / (Math.PI * 2)
+            target1 = false
+        }
+        function rotate(e) {
+            let deg2 = Math.atan2(e.clientY - y, e.clientX - x) * 360 / (Math.PI * 2) - deg1
+            wrapEl.style.setProperty('--deg',deg2 + 'deg')
+        }
+        document.addEventListener('mousemove', rotate)
+        document.addEventListener('mouseup', function () {
+            document.removeEventListener('mousemove', rotate)
+        })
+    })
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+
+
+
+
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+    // 缩放
+    // 1.设定阀值target2位true,
+    // 2.当鼠标按下时计算并记录wrapEl的中心位置(x,y),然后计算并记录鼠标当前位置与中心点的距离dis_1,
+    // 3.把target2置为false,以免后面重复计算,
+    // 4.当鼠标移动时计算出鼠标当前位置与中心点的距离dis_2,
+    // 5.通过dis_2/dis_1计算出需要缩放的倍数,改变css变量--scale完成缩放，
+    // 6.当鼠标松开时解除相关事件。
+
+    let target2 = true
+    let dis_1
+    scaleEl.addEventListener('mousedown',function(e){
+        e.stopPropagation()
+        e.preventDefault()
+        let x = wrapEl.offsetLeft + wrapEl.offsetWidth / 2
+        let y = wrapEl.offsetTop + wrapEl.offsetHeight / 2
+        if(target2){
+            dis_1 = Math.sqrt((e.clientX - x)**2 + (e.clientY - y)**2)
+            target2 = false
+        }
+        function scale(e){
+            let dis_2 = Math.sqrt((e.clientX - x)**2 + (e.clientY - y)**2)
+            wrapEl.style.setProperty('--scale',Number(dis_2 / dis_1))
+        }
+        document.addEventListener('mousemove',scale)
+        document.addEventListener('mouseup',function(){
+            document.removeEventListener('mousemove',scale)
+        })
+    })
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+
+
+
+
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+    //3D旋转
+    // 1.设定初始旋转值deg为0,
+    // 2.给contenEl添加过渡效果,
+    // 3.鼠标点击时deg自增180,
+    // 4.给contentEl添加3D旋转样式完成旋转。
+
+    let deg = 0
+    reverseEl.addEventListener('click',function(e){
+        e.preventDefault()
+        e.stopPropagation()
+        deg += 180
+        contentEl.style.transform = `rotateY(${deg}deg)`
+    })
+
+/* --------------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------------- */
+
+
+
+</script>
+
+</html>

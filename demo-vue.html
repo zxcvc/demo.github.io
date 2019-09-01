@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        .wrap {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            border: 1px solid black;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            transform-origin: 50% 50%;
+        }
+
+        .content {
+            z-index: 0;
+            width: 180px;
+            height: 180px;
+            background: linear-gradient(90deg, orange, green);
+            transition: transform 0.5s linear 0s;
+        }
+
+        .top,
+        .bottom {
+            z-index: 99;
+            width: 100%;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        span {
+            width: 20px;
+            height: 20px;
+            background-color: blueviolet;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="wrap" ref="wrap" v-show="hidden"
+            :style="{transform:`rotate(${this.deg2}deg) scale(${this.scale2})`}" v-darg>
+            <div class="top">
+                <span class="remove" ref="remove" v-remove>1</span>
+                <span class="rotate" ref="rotate" @mousedown.once.stop="init_rotate($event)" v-rotate>2</span>
+            </div>
+            <div class="content" ref="content" :style="{transform:`rotateY(${this.reverse_deg}deg)`}"></div>
+            <div class="bottom">
+                <span class="reverse" ref="reverse" v-reverse>4</span>
+                <span class="scale" ref="scale" @mousedown.once.stop="init_scale($event)" v-scale>3</span>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://cdn.bootcss.com/vue/2.6.10/vue.js"></script>
+<script>
+    let vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                hidden: true,
+                deg1: 0,//少旋转的角度
+                deg2: 0,//鼠标移动时旋转的角度
+                scale1: 1,//初始缩放倍数
+                scale2: 1,//鼠标移动时缩放的倍数
+                dis_1: 0,//鼠标按下时距离中心点的距离
+                reverse_deg: 0//3D旋转的角度
+            }
+        },
+        computed: {
+            //计算出wrapEl的中心坐标
+            position() {
+                let wrapEl = this.$refs.wrap
+                let x = wrapEl.offsetLeft + wrapEl.offsetWidth / 2
+                let y = wrapEl.offsetTop + wrapEl.offsetHeight / 2
+                return [x, y]
+            }
+        },
+        methods: {
+            //鼠标第一次按下时计算出少旋转的角度
+            init_rotate(e) {
+                let [x, y] = this.position
+                this.deg1 = Math.atan2(e.clientY - y, e.clientX - x) * 360 / (Math.PI * 2)
+            },
+            //鼠标第一次按下时计算出鼠标位置距离中心点的距离
+            init_scale(e) {
+                let [x, y] = this.position
+                this.dis_1 = Math.sqrt((e.clientX - x) ** 2 + (e.clientY - y) ** 2)
+            }
+        },
+        directives: {
+            //拖拽
+            darg: {
+                bind(el, binding, vnode) {
+                    el.addEventListener('mousedown', function (e) {
+                        let x = e.clientX - el.offsetLeft,
+                            y = e.clientY - el.offsetTop
+                        function move(e) {
+                            el.style.left = `${e.clientX - x}px`
+                            el.style.top = `${e.clientY - y}px`
+                        }
+                        document.addEventListener('mousemove', move)
+                        document.addEventListener('mouseup', function () {
+                            document.removeEventListener('mousemove', move)
+                        })
+                    })
+                }
+            },
+
+            //隐藏
+            remove: {
+                bind(el, binding, vnode) {
+                    el.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        vnode.context.hidden = false
+                    })
+                }
+            },
+
+            // 跟随鼠标旋转
+            rotate: {
+                bind(el, binding, vnode) {
+                    el.addEventListener('mousedown', function (e) {
+                        e.stopPropagation();
+                        let [x, y] = vnode.context.position
+                        function rotate1(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            vnode.context.deg2 = Math.atan2(e.clientY - y, e.clientX - x) * 360 / (Math.PI * 2) - vnode.context.deg1
+                        }
+                        document.addEventListener('mousemove', rotate1)
+                        document.addEventListener('mouseup', function () {
+                            document.removeEventListener('mousemove', rotate1)
+                        })
+                    })
+                }
+            },
+
+            // 缩放
+            scale: {
+                bind(el, binding, vnode) {
+                    el.addEventListener('mousedown', function (e) {
+                        e.stopPropagation();
+                        let [x, y] = vnode.context.position
+                        let dis_2
+                        function scale1(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dis_2 = Math.sqrt((e.clientX - x) ** 2 + (e.clientY - y) ** 2)
+                            vnode.context.scale2 = Number(dis_2) / Number(vnode.context.dis_1)
+                        }
+                        document.addEventListener('mousemove', scale1)
+                        document.addEventListener('mouseup', function () {
+                            document.removeEventListener('mousemove', scale1)
+                        })
+                    })
+                }
+            },
+
+            // 3D旋转
+            reverse: {
+                bind: function (el, binding, vnode) {
+                    el.addEventListener('click', function (e) {
+                        e.preventDefault()
+                        vnode.context.reverse_deg += 180
+                    })
+                }
+            }
+        }
+    })
+</script>
+
+</html>
